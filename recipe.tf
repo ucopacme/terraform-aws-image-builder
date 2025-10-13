@@ -1,0 +1,1 @@
+# This defines the container creation step. This should pull the mcr dotnet image and run through the build process of the rest of the container. 
