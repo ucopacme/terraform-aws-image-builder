@@ -1,1 +1,0 @@
-# This defines the runtime of the system where the container is built. It will need to do the s3 copy of the custom binaries for COPY later. It defaults to C:/ but may need to odify pathing to C:/temp for the build step.
