@@ -1,0 +1,45 @@
+name: install-app
+description: Downloads and installs application artifacts from S3
+schemaVersion: 1.0
+
+phases:
+  - name: build
+    steps:
+      - name: FindLatestArtifact
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -e
+              LATEST=$(aws s3api list-objects-v2 \
+                --bucket "${s3_bucket}" \
+                --prefix "artifacts/${app_name}/" \
+                --query "sort_by(Contents, &Key)[-1].Key" \
+                --output text)
+              if [ -z "$LATEST" ] || [ "$LATEST" = "None" ]; then
+                echo "ERROR: No artifact found for ${app_name}"
+                exit 1
+              fi
+              FILE_NAME=$(basename "$LATEST")
+              echo "Latest artifact: $FILE_NAME"
+              echo "$FILE_NAME" > /tmp/artifact_name.txt
+
+      - name: CreateTargetDirectory
+        action: CreateFolder
+        inputs:
+          - path: /opt/${app_name}
+            owner: root
+            group: root
+            permissions: "0755"
+
+      - name: DownloadAndInstall
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -e
+              FILE_NAME=$(cat /tmp/artifact_name.txt)
+              echo "Downloading s3://${s3_bucket}/artifacts/${app_name}/$FILE_NAME..."
+              aws s3 cp "s3://${s3_bucket}/artifacts/${app_name}/$FILE_NAME" "/tmp/$FILE_NAME"
+              tar -xzf "/tmp/$FILE_NAME" -C /opt/${app_name}
+              rm -f "/tmp/$FILE_NAME" /tmp/artifact_name.txt
